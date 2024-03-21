@@ -33,6 +33,11 @@ body {
 	background-color: #fcfcfc!important;
 }
 
+.bg-dark {
+	background-color: #000000
+	text: #ffffff
+}
+
 /* Social Media Icon CSS */
 
 .fa-facebook-official {
