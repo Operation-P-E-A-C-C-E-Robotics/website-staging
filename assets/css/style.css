@@ -34,8 +34,8 @@ body {
 }
 
 .bg-dark {
-	background-color: #000000
-	text: #ffffff
+	background-color: #000000!important;
+	text: #ffffff!important;
 }
 
 /* Social Media Icon CSS */
