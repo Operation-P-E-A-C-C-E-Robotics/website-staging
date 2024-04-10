@@ -598,6 +598,12 @@ export default defineConfig({
           ],
         },
         {
+          label: "Sponsor Packet",
+          name: "link",
+          description: "The file that the 'View Sponsor Packet' button will open on the /sponsors page",
+          type: "image"
+        },
+        {
         label: "Sponsors",
         name: "sponsors",
         type: "object",
@@ -614,6 +620,17 @@ export default defineConfig({
             label: "Name",
             name: "name",
             type: "string"
+          },
+          {
+            label: "Display Name Only",
+            description: "Enable this if we have no logo to display for the sponsor",
+            name:"isNameOnly",
+            type: "boolean"
+          },
+          {
+            label: "Logo",
+            name: "image",
+            type: "image"
           },
           {
             label: "Sponsor Tier",
@@ -643,6 +660,12 @@ export default defineConfig({
             ],
           },
           {
+            label: "Perpetual Sponsor",
+            name: "isPerpetual",
+            description: "Sponsors that are perpetual will always show on all Robot profiles and on the /sponsors page, this option overrides the 'years sponsored' options ",
+            type: "boolean"
+          },
+          {
             label: "Sponsor Summary",
             name: "summary",
             type: "rich-text"
@@ -652,16 +675,7 @@ export default defineConfig({
             name: "website",
             type: "string"
           },
-          {
-            label: "Display Name Only",
-            name:"isNameOnly",
-            type: "boolean"
-          },
-          {
-            label: "Logo",
-            name: "image",
-            type: "image"
-          },
+
           {
             label: "Years Sponsored",
             name: "years",
