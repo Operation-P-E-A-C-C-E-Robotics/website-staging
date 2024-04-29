@@ -1,6 +1,10 @@
 {
   "dependencies": {
+<<<<<<< HEAD
     "@tinacms/cli": "^1.5.45",
+=======
+    "@tinacms/cli": "^1.5.44",
+>>>>>>> 599c8d0 (Bump @tinacms/cli from 1.5.43 to 1.5.44)
     "simple-git": "^3.24.0",
     "tinacms": "^1.6.3"
   }
