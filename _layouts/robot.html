@@ -1092,7 +1092,7 @@ function sortEventBanners() {
       // //console.log(value.sort((a,b)=>a.x-b.x))
       chartConfig.data.datasets.push({
         label: eventKeyNamePair[key],
-        eventStart: eventKeyNamePair[value]['start_date'],
+        eventStart: eventKeyNamePair[value].start_date,
         borderColor: barColors[index],
         backgroundColor: barColors[index],
         data: value.sort(function(a,b) { if (a.num && b.num != null){sortNumerically(a.num, b.num)} else {sortCompLevel(value)}}),
