@@ -1111,8 +1111,10 @@ function sortEventBanners() {
       //   new Chart(key+"Chart", tempChartConfig)
       // )
     });
-    chartConfig.sort(function(a,b) { sortNumerically(a.eventStart, b.eventStart)})
+
+
     console.log(chartConfig);
+    chartConfig.sort(function(a,b) { sortNumerically(a.eventStart, b.eventStart)})
     new Chart("myChart", chartConfig);
 
 
