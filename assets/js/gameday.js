@@ -26,7 +26,15 @@ channel.bind('update', function(payload) {
     }
 
     else if (type === "eventStatus") {
-        update({ eventStatus: data });
+        setEventStatus(data);
+        tba.getMatchFromKey(data.next_match_key).then((match) => {
+            setNextMatch(match)
+        });
+        tba.getMatchFromKey(data.last_match_key).then( (match) => {
+            setLastMatch(match);
+        });
+        
+        
 
     }
 
@@ -215,7 +223,7 @@ async function setEventStatus(override) {
         const status = override || await tba.getTeamEventStatus(currentEvent.key);
         const rank = await tba.getTeamStatusRank(currentEvent.key, override)
         const record = await tba.getTeamStatusRecordStr(currentEvent.key, override);
-        eventStatusEl.innerText = `${record}`;
+        eventStatusEl.innerHTML = `${record}`;
         eventRankEl.innerText = `${rank}`;
         try {
             if (status?.playoff) {
@@ -392,7 +400,7 @@ async function updateWithVisual() {
 async function update(override = {}) {
     console.log('Updating gameday data...', override);
 
-    if (!override.matches) {
+    if (!override?.matches) {
         document.getElementById('matchesListContainer').innerHTML = "";
     }
 
