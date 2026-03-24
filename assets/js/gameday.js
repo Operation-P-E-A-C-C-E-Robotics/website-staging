@@ -8,6 +8,7 @@ var eventStatus = null;
 var matchUpdateInterval = null;
 var updateInterval = null;
 var audioNotification = false;
+var globalEventStatus = null;
 const matchRefreshSpinner = document.getElementById("matchRefreshSpinner");
 const streamRefreshSpinner = document.getElementById("streamRefreshSpinner");
 
@@ -26,16 +27,14 @@ channel.bind('update', function(payload) {
     }
 
     else if (type === "eventStatus") {
-        setEventStatus(data);
+        globalEventStatus = data;
+        setEventStatus();
         tba.getMatchFromKey(data.next_match_key).then((match) => {
             setNextMatch(match)
         });
         tba.getMatchFromKey(data.last_match_key).then( (match) => {
             setLastMatch(match);
         });
-        
-        
-
     }
 
     else if (type === "district") {
@@ -58,7 +57,7 @@ function resizeGameday() {
     gameday.style.height = `calc(100vh - ${navbarHeight}px)`;
 }
 
-window.addEventListener("load",  window.audioCtx = new (window.AudioContext || window.webkitAudioContext)())
+window.addEventListener("load",  () => { window.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); })
 window.addEventListener("load", window.jQuery(document.getElementById("audioToggleBtn")).tooltip())
 window.addEventListener("load", window.jQuery(matchRefreshSpinner).tooltip())
 window.addEventListener("load", window.jQuery(document.getElementById("currentEventStatus")).tooltip())
@@ -114,8 +113,8 @@ function addMatchToList(match, eventTimeZone) {
             console.log(`Match ${match.key} already exists in the list, updating instead of adding a duplicate.`);
             // Update existing match
             document.getElementById(`${match.key}`).querySelector('#matchCodeDisplay').innerText = matchKey; //This should not change, as it would then be a different match. Changing it makes any bugs obvious
-            document.getElementById(`${match.key}`).querySelector('#nextMatchRed').innerHTML = redAlliance; //These ususally dont change but just in case they do we will update them as well
-            document.getElementById(`${match.key}`).querySelector('#nextMatchBlue').innerHTML = blueAlliance; //These ususally dont change but just in case they do we will update them as well
+            document.getElementById(`${match.key}`).querySelector('#nextMatchRed').innerHTML = redAlliance; //These usually dont change but just in case they do we will update them as well
+            document.getElementById(`${match.key}`).querySelector('#nextMatchBlue').innerHTML = blueAlliance; //These usually dont change but just in case they do we will update them as well
             // Update the predicted time display
             const predictedTimeEl = document.getElementById(`${match.key}`).querySelector('#predictedTime');
             predictedTimeEl.innerText = predictedTimeString
@@ -137,8 +136,7 @@ function addMatchToList(match, eventTimeZone) {
                                 <td class="small font-weight-bold text-nowrap p-0 m-0" id="nextMatchBlue">${blueAlliance}</td>
                             </tr>
                         </tbody>
-                    </table> 
-                </table>  
+                    </table>   
                 `
             const matchItem = document.createElement('div')
             matchItem.classList.add("container", "bg-dark", "d-inline-flex", "align-items-center", "mr-1",
@@ -179,7 +177,7 @@ function populateLiveStreamOptions(event) {
     event.webcasts.sort((a, b ) => {
         const aDate = new Date(a.date).toISOString().slice(0, 10);
         const bDate = new Date(b.date).toISOString().slice(0, 10);
-        console.log(aDate.localeCompare(bDate));
+        console.log("Comparing Livestream Dates: ", aDate.localeCompare(bDate));
         return aDate.localeCompare(bDate)
     } ).forEach((webcast, index) => {
         const button = document.createElement('button');
@@ -220,10 +218,10 @@ async function setEventStatus(override) {
     const eventStatusEl = document.getElementById('currentEventStatus');
     const eventRankEl = document.getElementById('currentEventRank');
     try {
-        const status = override || await tba.getTeamEventStatus(currentEvent.key);
-        const rank = await tba.getTeamStatusRank(currentEvent.key, override)
-        const record = await tba.getTeamStatusRecordStr(currentEvent.key, override);
-        eventStatusEl.innerHTML = `${record}`;
+        const status = override || globalEventStatus || await tba.getTeamEventStatus(currentEvent.key);
+        const rank = await tba.getTeamStatusRank(currentEvent.key, status)
+        const record = await tba.getTeamStatusRecordStr(currentEvent.key, status);
+        eventStatusEl.innerText = `${record}`;
         eventRankEl.innerText = `${rank}`;
         try {
             if (status?.playoff) {
@@ -231,7 +229,7 @@ async function setEventStatus(override) {
                 window.jQuery(eventRankEl).tooltip()
             } else if (status?.qual) {
                 eventRankEl.setAttribute("title", "Qualification Ranking")
-                window.jQuery(eventStatusEl).tooltip()
+                window.jQuery(eventRankEl).tooltip()
             } else { console.warn("Status did not meet conditions for tooltips", status)}
         } catch (error) { console.warn("Could not set ranking tooltip", error)}
     } catch (error) {
@@ -242,22 +240,38 @@ async function setEventStatus(override) {
 }
 
 function setMatchList(matches, eventTimeZone) {
+    const now = tba.getEventLocalTimeCurrentTime(currentEvent.timezone);
     document.getElementById('matchesListContainer').innerHTML = ""; // Clear match list before populating to prevent duplicates
-    matches.sort((a, b) => (a.predicted_time *1000) - (b.predicted_time *1000)); // Sort matches by predicted time (multiplied by 1000 to convert from seconds to milliseconds for JavaScript Date)
-    matches.filter(match => match.predicted_time * 1000 > new Date().getTime()).forEach(match => addMatchToList(match, eventTimeZone)); // Only show upcoming matches in the list to prevent it from becoming too long as the event goes on. Past matches can be seen by clicking on the last match section at the top which will show the most recent past match with details and a link to the match video if available
-    // matches.forEach(async match => addMatchToList(match, eventTimeZone));
+    matches.sort((a, b) => (a.predicted_time ) - (b.predicted_time )); // Sort matches by predicted time (multiplied by 1000 to convert from seconds to milliseconds for JavaScript Date)
+    const futureMatches = matches.filter(match => match.predicted_time * 1000 > now)
+    
+    futureMatches.forEach(match => addMatchToList(match, eventTimeZone)); // Only show upcoming matches in the list to prevent it from becoming too long as the event goes on. Past matches can be seen by clicking on the last match section at the top which will show the most recent past match with details and a link to the match video if available
+    
+    if (
+        futureMatches.length === 0 &&
+        globalEventStatus?.next_match_key === null &&
+        globalEventStatus?.qual?.status === "completed" &&
+        (
+            globalEventStatus?.playoff == null ||
+            globalEventStatus.playoff.status !== "playing"
+        )
+    ) {
+        document.getElementById('matchesListContainer').innerHTML =
+            globalEventStatus?.overall_status_str ?? "";
+    }
+
 }
 
 function setNextMatch(nextMatch) {
     console.log('Setting next match:', nextMatch);
 
     if (!nextMatch) {
-        console.log("Match is null, Presuming Event has not begun...")
+        console.log("Next Match is null")
         let eventStart = tba.getEventLocalTimeDate(currentEvent.start_date, currentEvent.timezone);
         let now = tba.getEventLocalTimeCurrentTime(currentEvent.timezone);
 
         if (eventStart > now) {
-            console.log("Setting Event Countdown", "Event Start: ", eventStart, "Current Local Time: ", now)
+            console.log("Event Start is in future", "Event Start: ", eventStart, "Current Local Time: ", now)
             clearInterval(matchUpdateInterval);
             matchUpdateInterval = counter.matchCountdown(
                 eventStart,
@@ -377,7 +391,7 @@ async function init() {
             ? `https://player.twitch.tv/?autoplay=true&channel=${nextWebcast.channel}&parent=www.peacce.org`
             : `https://www.youtube.com/embed/${nextWebcast.channel}?autoplay=1`;
     })();
-    setLiveStream(liveStreamUrl, nextWebcast.channel);
+    setLiveStream(liveStreamUrl, nextWebcast ? nextWebcast.channel : null);
     
    await update();
    updateInterval = setInterval(update, 60000); // Refresh data every minute to keep match list and statuses up to date
@@ -397,36 +411,31 @@ async function updateWithVisual() {
     }, remaining);
 }
 
-async function update(override = {}) {
-    console.log('Updating gameday data...', override);
+async function update() {
+    console.log('Updating gameday data...');
+    document.getElementById('matchesListContainer').innerHTML = ""; // Clear match list before updating to prevent duplicates
+    globalEventStatus = await tba.getTeamEventStatus(currentEvent.key);
+    await setEventStatus(globalEventStatus);
+    console.log("Global Event Status", globalEventStatus)
+    tba.getEventMatches(currentEvent.key).then(matches => {
+        setMatchList(matches, currentEvent.timezone);
+    }).catch(error => {
+        console.error('Failed to get event matches:', error);
+        setMatchList([], currentEvent.timezone); // Clear match list on error
+    });
+    tba.getMatchFromKey(globalEventStatus.next_match_key).then(nextMatch => {
+        setNextMatch(nextMatch);
+    }).catch(error => {
+        console.error('Failed to get next match:', error);
+        setNextMatch(null);
+    });
 
-    if (!override?.matches) {
-        document.getElementById('matchesListContainer').innerHTML = "";
-    }
-
-    eventStatus = override.eventStatus || await tba.getTeamEventStatus(currentEvent.key);
-
-    if (override?.matches !== undefined) {
-        setMatchList(override.matches, currentEvent.timezone);
-    } else {
-        tba.getEventMatches(currentEvent.key)
-            .then(matches => setMatchList(matches, currentEvent.timezone))
-            .catch(error => {
-                console.error('Failed to get event matches:', error);
-                setMatchList([], currentEvent.timezone);
-            });
-    }
-
-    await setEventStatus(eventStatus);
-
-    tba.getMatchFromKey(eventStatus.next_match_key)
-        .then(setNextMatch)
-        .catch(() => setNextMatch(null));
-
-    tba.getMatchFromKey(eventStatus.last_match_key)
-        .then(setLastMatch)
-        .catch(() => setLastMatch(null));
-
+    tba.getMatchFromKey(globalEventStatus.last_match_key).then(lastMatch => {
+        setLastMatch(lastMatch);
+    }).catch(error => {
+        console.error('Failed to get last match:', error);
+        setLastMatch(null);
+    }); 
 
     resizeGameday();
     matchRefreshSpinner.setAttribute('data-original-title', 

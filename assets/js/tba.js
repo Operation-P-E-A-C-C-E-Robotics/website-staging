@@ -76,21 +76,21 @@ async function getEventStatuses() {
  */
 async function getTeamStatusStr(eventKey) {
     const status = await getTeamEventStatus(eventKey)
-        return status ? status.overall_status_str : "Current Status is Unknown";
+    return status ? status.overall_status_str : "Current Status is Unknown";
 }
 async function getTeamEventStatus(eventKey) {
     const eventStatuses = await getEventStatuses();
     const status = eventStatuses[`${eventKey}`];
-    console.log("Current Event Status: ", status)
+    //console.log("Current Event Status:", status);
     return status ? status : {};
 }
 
 async function getTeamStatusRecordStr(eventKey, override) {
     const status = override || await getTeamEventStatus(eventKey)
     if (status?.playoff) {
-        return status?.playoff?.record ? `<span class="text-success font-weight-bold">${status.playoff.record.wins}W</span> <span class="text-danger font-weight-bold">${status.playoff.record.losses}L</span> <span class="font-weight-bold text-info">${status.playoff.record.ties > 0 ? status.playoff.record.ties + "T" : ""}</span>` : "-W -L -T";
+        return status?.playoff?.record ? `<span class="green-text font-weight-bold">${status.playoff.record.wins}W</span> <span class="text-danger font-weight-bold">${status.playoff.record.losses}L</span> <span class="font-weight-bold text-info">${status.playoff.record.ties > 0 ? status.playoff.record.ties + "T" : ""}</span>` : "-W -L -T";
     } else if (status?.qual?.ranking) {
-        return status?.qual?.ranking?.record ? `<span class="text-success font-weight-bold">${status.qual.ranking.record.wins}W</span> <span class="text-danger font-weight-bold">${status.qual.ranking.record.losses}L</span> <span class="font-weight-bold text-info">${status.qual.ranking.record.ties > 0 ? status.qual.ranking.record.ties + "T" : ""}</span>` : "-W -L -T";
+        return status?.qual?.ranking?.record ? `<span class="green-text font-weight-bold">${status.qual.ranking.record.wins}W</span> <span class="text-danger font-weight-bold">${status.qual.ranking.record.losses}L</span> <span class="font-weight-bold text-info">${status.qual.ranking.record.ties > 0 ? status.qual.ranking.record.ties + "T" : ""}</span>` : "-W -L -T";
     } else {
         return "No Record"
     }
@@ -98,14 +98,19 @@ async function getTeamStatusRecordStr(eventKey, override) {
 async function getTeamStatusRank(eventKey, override) {
     const status = override || await getTeamEventStatus(eventKey);
     if (status?.playoff) {
+        const allianceDisplayName = status?.alliance?.name ? status.alliance.name.replace("Alliance", "A") + " " : ""; 
         if (status?.playoff.status === "eliminated") {
-            return "Eliminated"
+            return allianceDisplayName + "Eliminated from Playoffs"
         } else {
-            return status?.playoff?.double_elim_round ? status.playoff.double_elim_round : String(status.playoff.level).toUpperCase();
+            return allianceDisplayName + status?.playoff?.double_elim_round ? status.playoff.double_elim_round : String(status.playoff.level).toUpperCase();
         }
     }
     else if (status?.qual?.ranking) {
-        return status?.qual?.ranking? status.qual.ranking.rank + "/" + status.qual.num_teams : "? / ?";
+        if (status?.qual?.status === "completed" && status?.next_match_key === null) {
+            return "Qualification Matches Completed"
+        } else {
+            return status?.qual?.ranking ? status.qual.ranking.rank + "/" + status.qual.num_teams : "? / ?";
+        }
     } else {
         return "No Rank"
     }
@@ -261,23 +266,6 @@ async function getMedia() {
     return media.filter(m => m.team_key === "frc3461");
 }
 
-function sortCompLevel(a, b) {
-if (a == "qm" && b == "qm" && a < b) {
-    return 1;
-} else if (b == "qm" && a == "qm" && b < a) {
-    return -1;
-} else if (a == "qm" && b == "qf" && a < b){
-    return 1;
-} else if (b == "qm" && a == "qf" && b < a){
-    return -1;
-}else if (a == "qf" && b == "sf" && a < b){
-    return 1;
-} else if (b == "qf" && a == "sf" && b < a){
-    return -1;
-}else if (b == "qf" && a != "sf" && b < a) {
-    return 1;
-}
-}
 
 
 /**
@@ -314,7 +302,8 @@ function getKickoffDate(year = new Date().getFullYear()) {
     return firstSaturday;
 }
 
-export { getEventLocalTimeCurrentTime, getEventLocalTimeDate, getEventMatches, getTeamEventStatus, getTeamStatusRank, getTeamStatusRecordStr, getTeamStatusStr, getCurrentSeasonYear, getEvents, getEvent, getMatches, getEventStatuses, getTeamStatusStr as getTeamStatus, getDistrictRankings, getEventNameFromKey, getShortEventNameFromKey, getMatchFromKey, getMatchNameFromKey, getMatchCodeFromKey, formatTeamKey, getCurrentEvent, getNextEvent, getTeamDistrictStats, getAwards, getMedia, formatTimestamp, getKickoffDate };
+export { getEventLocalTimeCurrentTime, getEventLocalTimeDate, getEventMatches, getTeamEventStatus, getTeamStatusRank, getTeamStatusRecordStr, getCurrentSeasonYear, getEvents, getEvent, getMatches, getEventStatuses, getTeamStatusStr, getDistrictRankings, getEventNameFromKey, getShortEventNameFromKey, getMatchFromKey, getMatchNameFromKey, getMatchCodeFromKey, formatTeamKey, getCurrentEvent, getNextEvent, getTeamDistrictStats, getAwards, getMedia, formatTimestamp, getKickoffDate, viewOnTBA };
 window.getMatchCodeFromKey = getMatchCodeFromKey; // Expose getMatchCodeFromKey to global scope for testing purposes
 window.getCurrentSeasonYear = getCurrentSeasonYear; // Expose getCurrentSeasonYear to global scope for testing purposes
 window.year = year; // Expose year variable to global scope for testing purposes
+window.viewOnTBA = viewOnTBA;
