@@ -11,6 +11,8 @@
   "current_season": 2026,
   "max_team_page": 23,
   "is_datafeed_down": false,
-  "down_events": [],
+  "down_events": [
+    "2026rsr"
+  ],
   "kickoff_datetime": "2027-01-09T17:00:00+00:00"
 }
